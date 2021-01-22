@@ -20,6 +20,7 @@ package grpclb
 
 import (
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"sync"
 	"testing"
 	"time"
@@ -29,23 +30,23 @@ import (
 )
 
 type mockSubConn struct {
-	balancer.SubConn
+	apis.SubConn
 }
 
 type mockClientConn struct {
 	balancer.ClientConn
 
 	mu       sync.Mutex
-	subConns map[balancer.SubConn]resolver.Address
+	subConns map[apis.SubConn]resolver.Address
 }
 
 func newMockClientConn() *mockClientConn {
 	return &mockClientConn{
-		subConns: make(map[balancer.SubConn]resolver.Address),
+		subConns: make(map[apis.SubConn]resolver.Address),
 	}
 }
 
-func (mcc *mockClientConn) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (balancer.SubConn, error) {
+func (mcc *mockClientConn) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (apis.SubConn, error) {
 	sc := &mockSubConn{}
 	mcc.mu.Lock()
 	defer mcc.mu.Unlock()
@@ -53,7 +54,7 @@ func (mcc *mockClientConn) NewSubConn(addrs []resolver.Address, opts balancer.Ne
 	return sc, nil
 }
 
-func (mcc *mockClientConn) RemoveSubConn(sc balancer.SubConn) {
+func (mcc *mockClientConn) RemoveSubConn(sc apis.SubConn) {
 	mcc.mu.Lock()
 	defer mcc.mu.Unlock()
 	delete(mcc.subConns, sc)

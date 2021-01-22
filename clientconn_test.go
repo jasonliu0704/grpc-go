@@ -1003,7 +1003,7 @@ func (s) TestUpdateAddresses_RetryFromFirstAddr(t *testing.T) {
 	}
 
 	// Grab the addrConn and call tryUpdateAddrs.
-	var ac *addrConn
+	var ac *AddrConn
 	client.mu.Lock()
 	for clientAC := range client.conns {
 		ac = clientAC

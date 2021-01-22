@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"testing"
 
 	"google.golang.org/grpc/balancer"
@@ -72,8 +73,8 @@ type TestClientConn struct {
 	logger testingLogger
 
 	NewSubConnAddrsCh chan []resolver.Address // the last 10 []Address to create subconn.
-	NewSubConnCh      chan balancer.SubConn   // the last 10 subconn created.
-	RemoveSubConnCh   chan balancer.SubConn   // the last 10 subconn removed.
+	NewSubConnCh      chan apis.SubConn       // the last 10 subconn created.
+	RemoveSubConnCh   chan apis.SubConn       // the last 10 subconn removed.
 
 	NewPickerCh chan balancer.Picker    // the last picker updated.
 	NewStateCh  chan connectivity.State // the last state.
@@ -87,8 +88,8 @@ func NewTestClientConn(t *testing.T) *TestClientConn {
 		logger: t,
 
 		NewSubConnAddrsCh: make(chan []resolver.Address, 10),
-		NewSubConnCh:      make(chan balancer.SubConn, 10),
-		RemoveSubConnCh:   make(chan balancer.SubConn, 10),
+		NewSubConnCh:      make(chan apis.SubConn, 10),
+		RemoveSubConnCh:   make(chan apis.SubConn, 10),
 
 		NewPickerCh: make(chan balancer.Picker, 1),
 		NewStateCh:  make(chan connectivity.State, 1),
@@ -96,7 +97,7 @@ func NewTestClientConn(t *testing.T) *TestClientConn {
 }
 
 // NewSubConn creates a new SubConn.
-func (tcc *TestClientConn) NewSubConn(a []resolver.Address, o balancer.NewSubConnOptions) (balancer.SubConn, error) {
+func (tcc *TestClientConn) NewSubConn(a []resolver.Address, o balancer.NewSubConnOptions) (apis.SubConn, error) {
 	sc := TestSubConns[tcc.subConnIdx]
 	tcc.subConnIdx++
 
@@ -115,7 +116,7 @@ func (tcc *TestClientConn) NewSubConn(a []resolver.Address, o balancer.NewSubCon
 }
 
 // RemoveSubConn removes the SubConn.
-func (tcc *TestClientConn) RemoveSubConn(sc balancer.SubConn) {
+func (tcc *TestClientConn) RemoveSubConn(sc apis.SubConn) {
 	tcc.logger.Logf("testClientConn: RemoveSubConn(%p)", sc)
 	select {
 	case tcc.RemoveSubConnCh <- sc:
@@ -184,8 +185,8 @@ func (tcc *TestClientConn) WaitForErrPicker(ctx context.Context) error {
 //
 // If error is found in this step, the returned error contains the first
 // iteration + the second iteration until where it goes wrong.
-func IsRoundRobin(want []balancer.SubConn, f func() balancer.SubConn) error {
-	wantSet := make(map[balancer.SubConn]int) // SubConn -> count, for weighted RR.
+func IsRoundRobin(want []apis.SubConn, f func() apis.SubConn) error {
+	wantSet := make(map[apis.SubConn]int) // SubConn -> count, for weighted RR.
 	for _, sc := range want {
 		wantSet[sc]++
 	}
@@ -195,7 +196,7 @@ func IsRoundRobin(want []balancer.SubConn, f func() balancer.SubConn) error {
 	//
 	// Also keep the returns values in a slice, so we can compare the order in
 	// the second iteration.
-	gotSliceFirstIteration := make([]balancer.SubConn, 0, len(want))
+	gotSliceFirstIteration := make([]apis.SubConn, 0, len(want))
 	for range want {
 		got := f()
 		gotSliceFirstIteration = append(gotSliceFirstIteration, got)
@@ -206,7 +207,7 @@ func IsRoundRobin(want []balancer.SubConn, f func() balancer.SubConn) error {
 	}
 
 	// The second iteration should repeat the first iteration.
-	var gotSliceSecondIteration []balancer.SubConn
+	var gotSliceSecondIteration []apis.SubConn
 	for i := 0; i < 2; i++ {
 		for _, w := range gotSliceFirstIteration {
 			g := f()
@@ -222,11 +223,11 @@ func IsRoundRobin(want []balancer.SubConn, f func() balancer.SubConn) error {
 
 // testClosure is a test util for TestIsRoundRobin.
 type testClosure struct {
-	r []balancer.SubConn
+	r []apis.SubConn
 	i int
 }
 
-func (tc *testClosure) next() balancer.SubConn {
+func (tc *testClosure) next() apis.SubConn {
 	ret := tc.r[tc.i]
 	tc.i = (tc.i + 1) % len(tc.r)
 	return ret
@@ -256,7 +257,7 @@ type testConstBalancer struct {
 	cc balancer.ClientConn
 }
 
-func (tb *testConstBalancer) UpdateSubConnState(sc balancer.SubConn, state balancer.SubConnState) {
+func (tb *testConstBalancer) UpdateSubConnState(sc apis.SubConn, state balancer.SubConnState) {
 	tb.cc.UpdateState(balancer.State{ConnectivityState: connectivity.Ready, Picker: &TestConstPicker{Err: ErrTestConstPicker}})
 }
 
@@ -278,7 +279,7 @@ func (*testConstBalancer) Close() {
 // TestConstPicker is a const picker for tests.
 type TestConstPicker struct {
 	Err error
-	SC  balancer.SubConn
+	SC  apis.SubConn
 }
 
 // Pick returns the const SubConn or the error.

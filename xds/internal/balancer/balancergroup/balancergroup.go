@@ -20,6 +20,7 @@ package balancergroup
 
 import (
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"sync"
 	"time"
 
@@ -81,7 +82,7 @@ func (sbc *subBalancerWrapper) UpdateState(state balancer.State) {
 
 // NewSubConn overrides balancer.ClientConn, so balancer group can keep track of
 // the relation between subconns and sub-balancers.
-func (sbc *subBalancerWrapper) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (balancer.SubConn, error) {
+func (sbc *subBalancerWrapper) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (apis.SubConn, error) {
 	return sbc.group.newSubConn(sbc, addrs, opts)
 }
 
@@ -102,7 +103,7 @@ func (sbc *subBalancerWrapper) startBalancer() {
 	}
 }
 
-func (sbc *subBalancerWrapper) updateSubConnState(sc balancer.SubConn, state balancer.SubConnState) {
+func (sbc *subBalancerWrapper) updateSubConnState(sc apis.SubConn, state balancer.SubConnState) {
 	b := sbc.balancer
 	if b == nil {
 		// This sub-balancer was closed. This can happen when EDS removes a
@@ -224,7 +225,7 @@ type BalancerGroup struct {
 	// from sub-balancers after they are closed.
 	incomingMu      sync.Mutex
 	incomingStarted bool // This boolean only guards calls back to ClientConn.
-	scToSubBalancer map[balancer.SubConn]*subBalancerWrapper
+	scToSubBalancer map[apis.SubConn]*subBalancerWrapper
 }
 
 // DefaultSubBalancerCloseTimeout is defined as a variable instead of const for
@@ -245,7 +246,7 @@ func New(cc balancer.ClientConn, stateAggregator BalancerStateAggregator, loadSt
 
 		idToBalancerConfig: make(map[string]*subBalancerWrapper),
 		balancerCache:      cache.NewTimeoutCache(DefaultSubBalancerCloseTimeout),
-		scToSubBalancer:    make(map[balancer.SubConn]*subBalancerWrapper),
+		scToSubBalancer:    make(map[apis.SubConn]*subBalancerWrapper),
 	}
 }
 
@@ -373,7 +374,7 @@ func (bg *BalancerGroup) cleanupSubConns(config *subBalancerWrapper) {
 
 // UpdateSubConnState handles the state for the subconn. It finds the
 // corresponding balancer and forwards the update.
-func (bg *BalancerGroup) UpdateSubConnState(sc balancer.SubConn, state balancer.SubConnState) {
+func (bg *BalancerGroup) UpdateSubConnState(sc apis.SubConn, state balancer.SubConnState) {
 	bg.incomingMu.Lock()
 	config, ok := bg.scToSubBalancer[sc]
 	if !ok {
@@ -420,7 +421,7 @@ func (bg *BalancerGroup) ResolverError(err error) {
 // from map. Delete sc from the map only when state changes to Shutdown. Since
 // it's just forwarding the action, there's no need for a removeSubConn()
 // wrapper function.
-func (bg *BalancerGroup) newSubConn(config *subBalancerWrapper, addrs []resolver.Address, opts balancer.NewSubConnOptions) (balancer.SubConn, error) {
+func (bg *BalancerGroup) newSubConn(config *subBalancerWrapper, addrs []resolver.Address, opts balancer.NewSubConnOptions) (apis.SubConn, error) {
 	// NOTE: if balancer with id was already removed, this should also return
 	// error. But since we call balancer.stopBalancer when removing the balancer, this
 	// shouldn't happen.

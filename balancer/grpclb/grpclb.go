@@ -25,6 +25,7 @@ package grpclb
 import (
 	"context"
 	"errors"
+	"google.golang.org/grpc/balancer/apis"
 	"sync"
 	"time"
 
@@ -140,8 +141,8 @@ func (b *lbBuilder) Build(cc balancer.ClientConn, opt balancer.BuildOptions) bal
 		doneCh:          make(chan struct{}),
 
 		manualResolver: r,
-		subConns:       make(map[resolver.Address]balancer.SubConn),
-		scStates:       make(map[balancer.SubConn]connectivity.State),
+		subConns:       make(map[resolver.Address]apis.SubConn),
+		scStates:       make(map[apis.SubConn]connectivity.State),
 		picker:         &errPicker{err: balancer.ErrNoSubConnAvailable},
 		clientStats:    newRPCStats(),
 		backoff:        backoff.DefaultExponential, // TODO: make backoff configurable.
@@ -209,8 +210,8 @@ type lbBalancer struct {
 	backendAddrsWithoutMetadata []resolver.Address
 	// Roundrobin functionalities.
 	state    connectivity.State
-	subConns map[resolver.Address]balancer.SubConn   // Used to new/remove SubConn.
-	scStates map[balancer.SubConn]connectivity.State // Used to filter READY SubConns.
+	subConns map[resolver.Address]apis.SubConn   // Used to new/remove SubConn.
+	scStates map[apis.SubConn]connectivity.State // Used to filter READY SubConns.
 	picker   balancer.Picker
 	// Support fallback to resolved backend addresses if there's no response
 	// from remote balancer within fallbackTimeout.
@@ -239,7 +240,7 @@ func (lb *lbBalancer) regeneratePicker(resetDrop bool) {
 		return
 	}
 
-	var readySCs []balancer.SubConn
+	var readySCs []apis.SubConn
 	if lb.usePickFirst {
 		for _, sc := range lb.subConns {
 			readySCs = append(readySCs, sc)
@@ -313,7 +314,7 @@ func (lb *lbBalancer) aggregateSubConnStates() connectivity.State {
 	return connectivity.TransientFailure
 }
 
-func (lb *lbBalancer) UpdateSubConnState(sc balancer.SubConn, scs balancer.SubConnState) {
+func (lb *lbBalancer) UpdateSubConnState(sc apis.SubConn, scs balancer.SubConnState) {
 	s := scs.ConnectivityState
 	if logger.V(2) {
 		logger.Infof("lbBalancer: handle SubConn state change: %p, %v", sc, s)

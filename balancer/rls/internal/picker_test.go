@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"math"
 	"testing"
 	"time"
@@ -66,7 +67,7 @@ func initKeyBuilderMap() (keys.BuilderMap, error) {
 // fakeSubConn embeds the balancer.SubConn interface and contains an id which
 // helps verify that the expected subConn was returned by the rlsPicker.
 type fakeSubConn struct {
-	balancer.SubConn
+	apis.SubConn
 	id int
 }
 
@@ -86,7 +87,7 @@ func newFakePicker() *fakePicker {
 	return &fakePicker{id: grpcrand.Intn(math.MaxInt32)}
 }
 
-func verifySubConn(sc balancer.SubConn, wantID int) error {
+func verifySubConn(sc apis.SubConn, wantID int) error {
 	fsc, ok := sc.(*fakeSubConn)
 	if !ok {
 		return fmt.Errorf("Pick() returned a SubConn of type %T, want %T", sc, &fakeSubConn{})

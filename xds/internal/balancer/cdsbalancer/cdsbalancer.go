@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/balancer/base"
@@ -154,7 +155,7 @@ type ccUpdate struct {
 // scUpdate wraps a subConn update received from gRPC. This is directly passed
 // on to the edsBalancer.
 type scUpdate struct {
-	subConn balancer.SubConn
+	subConn apis.SubConn
 	state   balancer.SubConnState
 }
 
@@ -482,7 +483,7 @@ func (b *cdsBalancer) ResolverError(err error) {
 }
 
 // UpdateSubConnState handles subConn updates from gRPC.
-func (b *cdsBalancer) UpdateSubConnState(sc balancer.SubConn, state balancer.SubConnState) {
+func (b *cdsBalancer) UpdateSubConnState(sc apis.SubConn, state balancer.SubConnState) {
 	if b.closed.HasFired() {
 		b.logger.Warningf("xds: received subConn update {%v, %v} after cdsBalancer was closed", sc, state)
 		return
@@ -511,7 +512,7 @@ type ccWrapper struct {
 // NewSubConn intercepts NewSubConn() calls from the child policy and adds an
 // address attribute which provides all information required by the xdsCreds
 // handshaker to perform the TLS handshake.
-func (ccw *ccWrapper) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (balancer.SubConn, error) {
+func (ccw *ccWrapper) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (apis.SubConn, error) {
 	newAddrs := make([]resolver.Address, len(addrs))
 	for i, addr := range addrs {
 		newAddrs[i] = xdsinternal.SetHandshakeInfo(addr, ccw.xdsHI)

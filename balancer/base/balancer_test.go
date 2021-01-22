@@ -19,6 +19,7 @@
 package base
 
 import (
+	"google.golang.org/grpc/balancer/apis"
 	"testing"
 
 	"google.golang.org/grpc/attributes"
@@ -28,10 +29,10 @@ import (
 
 type testClientConn struct {
 	balancer.ClientConn
-	newSubConn func([]resolver.Address, balancer.NewSubConnOptions) (balancer.SubConn, error)
+	newSubConn func([]resolver.Address, balancer.NewSubConnOptions) (apis.SubConn, error)
 }
 
-func (c *testClientConn) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (balancer.SubConn, error) {
+func (c *testClientConn) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (apis.SubConn, error) {
 	return c.newSubConn(addrs, opts)
 }
 
@@ -43,7 +44,7 @@ func (sc *testSubConn) Connect() {}
 
 func TestBaseBalancerStripAttributes(t *testing.T) {
 	b := (&baseBuilder{}).Build(&testClientConn{
-		newSubConn: func(addrs []resolver.Address, _ balancer.NewSubConnOptions) (balancer.SubConn, error) {
+		newSubConn: func(addrs []resolver.Address, _ balancer.NewSubConnOptions) (apis.SubConn, error) {
 			for _, addr := range addrs {
 				if addr.Attributes == nil {
 					t.Errorf("in NewSubConn, got address %+v with nil attributes, want not nil", addr)

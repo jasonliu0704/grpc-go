@@ -20,6 +20,7 @@ package grpc
 
 import (
 	"context"
+	"google.golang.org/grpc/balancer/apis"
 	"net"
 	"sync"
 	"testing"
@@ -449,7 +450,7 @@ type stateRecordingBalancer struct {
 	balancer.Balancer
 }
 
-func (b *stateRecordingBalancer) UpdateSubConnState(sc balancer.SubConn, s balancer.SubConnState) {
+func (b *stateRecordingBalancer) UpdateSubConnState(sc apis.SubConn, s balancer.SubConnState) {
 	b.notifier <- s.ConnectivityState
 	b.Balancer.UpdateSubConnState(sc, s)
 }

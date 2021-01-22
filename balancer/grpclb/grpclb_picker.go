@@ -19,6 +19,7 @@
 package grpclb
 
 import (
+	"google.golang.org/grpc/balancer/apis"
 	"sync"
 	"sync/atomic"
 
@@ -114,11 +115,11 @@ func (p *errPicker) Pick(balancer.PickInfo) (balancer.PickResult, error) {
 // It guaranteed that len(subConns) > 0.
 type rrPicker struct {
 	mu           sync.Mutex
-	subConns     []balancer.SubConn // The subConns that were READY when taking the snapshot.
+	subConns     []apis.SubConn // The subConns that were READY when taking the snapshot.
 	subConnsNext int
 }
 
-func newRRPicker(readySCs []balancer.SubConn) *rrPicker {
+func newRRPicker(readySCs []apis.SubConn) *rrPicker {
 	return &rrPicker{
 		subConns:     readySCs,
 		subConnsNext: grpcrand.Intn(len(readySCs)),
@@ -146,13 +147,13 @@ type lbPicker struct {
 	mu             sync.Mutex
 	serverList     []*lbpb.Server
 	serverListNext int
-	subConns       []balancer.SubConn // The subConns that were READY when taking the snapshot.
+	subConns       []apis.SubConn // The subConns that were READY when taking the snapshot.
 	subConnsNext   int
 
 	stats *rpcStats
 }
 
-func newLBPicker(serverList []*lbpb.Server, readySCs []balancer.SubConn, stats *rpcStats) *lbPicker {
+func newLBPicker(serverList []*lbpb.Server, readySCs []apis.SubConn, stats *rpcStats) *lbPicker {
 	return &lbPicker{
 		serverList:   serverList,
 		subConns:     readySCs,
@@ -193,7 +194,7 @@ func (p *lbPicker) Pick(balancer.PickInfo) (balancer.PickResult, error) {
 	return balancer.PickResult{SubConn: sc, Done: done}, nil
 }
 
-func (p *lbPicker) updateReadySCs(readySCs []balancer.SubConn) {
+func (p *lbPicker) updateReadySCs(readySCs []apis.SubConn) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 

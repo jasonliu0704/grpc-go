@@ -32,6 +32,7 @@ package base
 
 import (
 	"google.golang.org/grpc/balancer"
+	"google.golang.org/grpc/balancer/apis"
 	"google.golang.org/grpc/resolver"
 )
 
@@ -46,7 +47,7 @@ type PickerBuilder interface {
 type PickerBuildInfo struct {
 	// ReadySCs is a map from all ready SubConns to the Addresses used to
 	// create them.
-	ReadySCs map[balancer.SubConn]SubConnInfo
+	ReadySCs map[apis.SubConn]SubConnInfo
 }
 
 // SubConnInfo contains information about a SubConn created by the base

@@ -19,6 +19,7 @@
 package rls
 
 import (
+	"google.golang.org/grpc/balancer/apis"
 	"sync"
 
 	"google.golang.org/grpc"
@@ -112,7 +113,7 @@ func (lb *rlsBalancer) ResolverError(error) {
 }
 
 // UpdateSubConnState implements balancer.Balancer interface.
-func (lb *rlsBalancer) UpdateSubConnState(_ balancer.SubConn, _ balancer.SubConnState) {
+func (lb *rlsBalancer) UpdateSubConnState(_ apis.SubConn, _ balancer.SubConnState) {
 	logger.Fatal("rls: UpdateSubConnState is not yet implemented")
 }
 

@@ -21,6 +21,7 @@ package base
 import (
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/connectivity"
@@ -41,8 +42,8 @@ func (bb *baseBuilder) Build(cc balancer.ClientConn, opt balancer.BuildOptions) 
 		cc:            cc,
 		pickerBuilder: bb.pickerBuilder,
 
-		subConns: make(map[resolver.Address]balancer.SubConn),
-		scStates: make(map[balancer.SubConn]connectivity.State),
+		subConns: make(map[resolver.Address]apis.SubConn),
+		scStates: make(map[apis.SubConn]connectivity.State),
 		csEvltr:  &balancer.ConnectivityStateEvaluator{},
 		config:   bb.config,
 	}
@@ -64,8 +65,8 @@ type baseBalancer struct {
 	csEvltr *balancer.ConnectivityStateEvaluator
 	state   connectivity.State
 
-	subConns map[resolver.Address]balancer.SubConn // `attributes` is stripped from the keys of this map (the addresses)
-	scStates map[balancer.SubConn]connectivity.State
+	subConns map[resolver.Address]apis.SubConn // `attributes` is stripped from the keys of this map (the addresses)
+	scStates map[apis.SubConn]connectivity.State
 	picker   balancer.Picker
 	config   Config
 
@@ -181,7 +182,7 @@ func (b *baseBalancer) regeneratePicker() {
 		b.picker = NewErrPicker(b.mergeErrors())
 		return
 	}
-	readySCs := make(map[balancer.SubConn]SubConnInfo)
+	readySCs := make(map[apis.SubConn]SubConnInfo)
 
 	// Filter out all ready SCs from full subConn map.
 	for addr, sc := range b.subConns {
@@ -192,7 +193,7 @@ func (b *baseBalancer) regeneratePicker() {
 	b.picker = b.pickerBuilder.Build(PickerBuildInfo{ReadySCs: readySCs})
 }
 
-func (b *baseBalancer) UpdateSubConnState(sc balancer.SubConn, state balancer.SubConnState) {
+func (b *baseBalancer) UpdateSubConnState(sc apis.SubConn, state balancer.SubConnState) {
 	s := state.ConnectivityState
 	if logger.V(2) {
 		logger.Infof("base.baseBalancer: handle SubConn state change: %p, %v", sc, s)

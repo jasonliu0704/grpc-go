@@ -22,6 +22,7 @@ package edsbalancer
 import (
 	"encoding/json"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -110,7 +111,7 @@ type edsBalancerImplInterface interface {
 	// balancing policy to use.
 	handleChildPolicy(name string, config json.RawMessage)
 	// handleSubConnStateChange handles state change for SubConn.
-	handleSubConnStateChange(sc balancer.SubConn, state connectivity.State)
+	handleSubConnStateChange(sc apis.SubConn, state connectivity.State)
 	// updateState handle a balancer state update from the priority.
 	updateState(priority priorityType, s balancer.State)
 	// updateServiceRequestsCounter updates the service requests counter to the
@@ -319,11 +320,11 @@ func (x *edsBalancer) handleXDSClientUpdate(update *edsUpdate) {
 }
 
 type subConnStateUpdate struct {
-	sc    balancer.SubConn
+	sc    apis.SubConn
 	state balancer.SubConnState
 }
 
-func (x *edsBalancer) UpdateSubConnState(sc balancer.SubConn, state balancer.SubConnState) {
+func (x *edsBalancer) UpdateSubConnState(sc apis.SubConn, state balancer.SubConnState) {
 	update := &subConnStateUpdate{
 		sc:    sc,
 		state: state,

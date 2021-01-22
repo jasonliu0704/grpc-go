@@ -18,6 +18,7 @@ package edsbalancer
 
 import (
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"reflect"
 	"sort"
 	"testing"
@@ -93,7 +94,7 @@ func (s) TestEDS_OneLocality(t *testing.T) {
 
 	// Test roundrobin with two subconns.
 	p2 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc1, sc2}
+	want := []apis.SubConn{sc1, sc2}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p2)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -204,7 +205,7 @@ func (s) TestEDS_TwoLocalities(t *testing.T) {
 
 	// Test roundrobin with two subconns.
 	p1 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc1, sc2}
+	want := []apis.SubConn{sc1, sc2}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p1)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -222,7 +223,7 @@ func (s) TestEDS_TwoLocalities(t *testing.T) {
 
 	// Test roundrobin with three subconns.
 	p2 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc1, sc2, sc3}
+	want = []apis.SubConn{sc1, sc2, sc3}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p2)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -241,7 +242,7 @@ func (s) TestEDS_TwoLocalities(t *testing.T) {
 
 	// Test pick with two subconns (without the first one).
 	p3 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc2, sc3}
+	want = []apis.SubConn{sc2, sc3}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p3)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -261,7 +262,7 @@ func (s) TestEDS_TwoLocalities(t *testing.T) {
 	// Locality-1 will be picked twice, and locality-2 will be picked twice.
 	// Locality-1 contains only sc2, locality-2 contains sc3 and sc4. So expect
 	// two sc2's and sc3, sc4.
-	want = []balancer.SubConn{sc2, sc2, sc3, sc4}
+	want = []apis.SubConn{sc2, sc2, sc3, sc4}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p4)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -277,7 +278,7 @@ func (s) TestEDS_TwoLocalities(t *testing.T) {
 	// Locality-1 will be picked four times, and locality-2 will be picked twice
 	// (weight 2 and 1). Locality-1 contains only sc2, locality-2 contains sc3 and
 	// sc4. So expect four sc2's and sc3, sc4.
-	want = []balancer.SubConn{sc2, sc2, sc2, sc2, sc3, sc4}
+	want = []apis.SubConn{sc2, sc2, sc2, sc2, sc3, sc4}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p5)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -303,7 +304,7 @@ func (s) TestEDS_TwoLocalities(t *testing.T) {
 	p6 := <-cc.NewPickerCh
 	// Locality-1 will be not be picked, and locality-2 will be picked.
 	// Locality-2 contains sc3 and sc4. So expect sc3, sc4.
-	want = []balancer.SubConn{sc3, sc4}
+	want = []apis.SubConn{sc3, sc4}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p6)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -341,7 +342,7 @@ func (s) TestEDS_EndpointsHealth(t *testing.T) {
 	edsb.handleEDSResponse(parseEDSRespProtoForTesting(clab1.Build()))
 
 	var (
-		readySCs           []balancer.SubConn
+		readySCs           []apis.SubConn
 		newSubConnAddrStrs []string
 	)
 	for i := 0; i < 4; i++ {
@@ -501,7 +502,7 @@ func (s) TestEDS_UpdateSubBalancerName(t *testing.T) {
 
 	// Test roundrobin with two subconns.
 	p1 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc1, sc2}
+	want := []apis.SubConn{sc1, sc2}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p1)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -546,7 +547,7 @@ func (s) TestEDS_UpdateSubBalancerName(t *testing.T) {
 	edsb.handleSubConnStateChange(sc4, connectivity.Ready)
 
 	p3 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc3, sc4}
+	want = []apis.SubConn{sc3, sc4}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p3)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -637,7 +638,7 @@ func (tb *testInlineUpdateBalancer) ResolverError(error) {
 	panic("not implemented")
 }
 
-func (tb *testInlineUpdateBalancer) UpdateSubConnState(balancer.SubConn, balancer.SubConnState) {
+func (tb *testInlineUpdateBalancer) UpdateSubConnState(apis.SubConn, balancer.SubConnState) {
 }
 
 var errTestInlineStateUpdate = fmt.Errorf("don't like addresses, empty or not")
@@ -758,7 +759,7 @@ func (s) TestEDS_LoadReport(t *testing.T) {
 	edsb := newEDSBalancerImpl(cc, nil, lsWrapper, nil)
 	edsb.enqueueChildBalancerStateUpdate = edsb.updateState
 
-	backendToBalancerID := make(map[balancer.SubConn]internal.LocalityID)
+	backendToBalancerID := make(map[apis.SubConn]internal.LocalityID)
 
 	// Two localities, each with one backend.
 	clab1 := testutils.NewClusterLoadAssignmentBuilder(testClusterNames[0], nil)

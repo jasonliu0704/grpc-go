@@ -19,6 +19,7 @@ package edsbalancer
 
 import (
 	"context"
+	"google.golang.org/grpc/balancer/apis"
 	"testing"
 	"time"
 
@@ -56,7 +57,7 @@ func (s) TestEDSPriority_HighPriorityReady(t *testing.T) {
 
 	// Test roundrobin with only p0 subconns.
 	p1 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc1}
+	want := []apis.SubConn{sc1}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p1)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -122,7 +123,7 @@ func (s) TestEDSPriority_SwitchPriority(t *testing.T) {
 
 	// Test roundrobin with only p0 subconns.
 	p0 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc0}
+	want := []apis.SubConn{sc0}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p0)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -320,7 +321,7 @@ func (s) TestEDSPriority_HigherReadyCloseAllLower(t *testing.T) {
 	//
 	// With localities caching, the lower priorities are closed after a timeout,
 	// in goroutines. The order is no longer guaranteed.
-	scToRemove := []balancer.SubConn{<-cc.RemoveSubConnCh, <-cc.RemoveSubConnCh}
+	scToRemove := []apis.SubConn{<-cc.RemoveSubConnCh, <-cc.RemoveSubConnCh}
 	if !(cmp.Equal(scToRemove[0], sc1, cmp.AllowUnexported(testutils.TestSubConn{})) &&
 		cmp.Equal(scToRemove[1], sc2, cmp.AllowUnexported(testutils.TestSubConn{}))) &&
 		!(cmp.Equal(scToRemove[0], sc2, cmp.AllowUnexported(testutils.TestSubConn{})) &&
@@ -422,7 +423,7 @@ func (s) TestEDSPriority_MultipleLocalities(t *testing.T) {
 
 	// Test roundrobin with only p0 subconns.
 	p0 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc0}
+	want := []apis.SubConn{sc0}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p0)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -440,7 +441,7 @@ func (s) TestEDSPriority_MultipleLocalities(t *testing.T) {
 
 	// Test roundrobin with only p1 subconns.
 	p1 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc1}
+	want = []apis.SubConn{sc1}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p1)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -455,7 +456,7 @@ func (s) TestEDSPriority_MultipleLocalities(t *testing.T) {
 
 	// Test roundrobin with only p0 subconns.
 	p2 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc0}
+	want = []apis.SubConn{sc0}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p2)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -478,7 +479,7 @@ func (s) TestEDSPriority_MultipleLocalities(t *testing.T) {
 
 	// Test roundrobin with only two p0 subconns.
 	p3 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc0, sc2}
+	want = []apis.SubConn{sc0, sc2}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p3)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -496,7 +497,7 @@ func (s) TestEDSPriority_MultipleLocalities(t *testing.T) {
 
 	// Test roundrobin with only p1 subconns.
 	p4 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc3, sc4}
+	want = []apis.SubConn{sc3, sc4}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p4)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -533,7 +534,7 @@ func (s) TestEDSPriority_RemovesAllLocalities(t *testing.T) {
 
 	// Test roundrobin with only p0 subconns.
 	p0 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc0}
+	want := []apis.SubConn{sc0}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p0)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -583,7 +584,7 @@ func (s) TestEDSPriority_RemovesAllLocalities(t *testing.T) {
 
 	// Test roundrobin with only p1 subconns.
 	p1 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc11}
+	want = []apis.SubConn{sc11}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p1)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -614,7 +615,7 @@ func (s) TestEDSPriority_RemovesAllLocalities(t *testing.T) {
 
 	// Test roundrobin with only p0 subconns.
 	p2 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc01}
+	want = []apis.SubConn{sc01}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p2)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -719,7 +720,7 @@ func (s) TestEDSPriority_HighPriorityNoEndpoints(t *testing.T) {
 
 	// Test roundrobin with only p0 subconns.
 	p1 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc1}
+	want := []apis.SubConn{sc1}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p1)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -747,7 +748,7 @@ func (s) TestEDSPriority_HighPriorityNoEndpoints(t *testing.T) {
 
 	// Test roundrobin with only p1 subconns.
 	p2 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc2}
+	want = []apis.SubConn{sc2}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p2)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -778,7 +779,7 @@ func (s) TestEDSPriority_HighPriorityAllUnhealthy(t *testing.T) {
 
 	// Test roundrobin with only p0 subconns.
 	p1 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc1}
+	want := []apis.SubConn{sc1}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p1)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -808,7 +809,7 @@ func (s) TestEDSPriority_HighPriorityAllUnhealthy(t *testing.T) {
 
 	// Test roundrobin with only p1 subconns.
 	p2 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc2}
+	want = []apis.SubConn{sc2}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p2)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}

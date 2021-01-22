@@ -19,9 +19,8 @@
 package testutils
 
 import (
+	"google.golang.org/grpc/balancer/apis"
 	"testing"
-
-	"google.golang.org/grpc/balancer"
 )
 
 func TestIsRoundRobin(t *testing.T) {
@@ -33,93 +32,93 @@ func TestIsRoundRobin(t *testing.T) {
 
 	testCases := []struct {
 		desc string
-		want []balancer.SubConn
-		got  []balancer.SubConn
+		want []apis.SubConn
+		got  []apis.SubConn
 		pass bool
 	}{
 		{
 			desc: "0 element",
-			want: []balancer.SubConn{},
-			got:  []balancer.SubConn{},
+			want: []apis.SubConn{},
+			got:  []apis.SubConn{},
 			pass: true,
 		},
 		{
 			desc: "1 element RR",
-			want: []balancer.SubConn{sc1},
-			got:  []balancer.SubConn{sc1, sc1, sc1, sc1},
+			want: []apis.SubConn{sc1},
+			got:  []apis.SubConn{sc1, sc1, sc1, sc1},
 			pass: true,
 		},
 		{
 			desc: "1 element not RR",
-			want: []balancer.SubConn{sc1},
-			got:  []balancer.SubConn{sc1, sc2, sc1},
+			want: []apis.SubConn{sc1},
+			got:  []apis.SubConn{sc1, sc2, sc1},
 			pass: false,
 		},
 		{
 			desc: "2 elements RR",
-			want: []balancer.SubConn{sc1, sc2},
-			got:  []balancer.SubConn{sc1, sc2, sc1, sc2, sc1, sc2},
+			want: []apis.SubConn{sc1, sc2},
+			got:  []apis.SubConn{sc1, sc2, sc1, sc2, sc1, sc2},
 			pass: true,
 		},
 		{
 			desc: "2 elements RR different order from want",
-			want: []balancer.SubConn{sc2, sc1},
-			got:  []balancer.SubConn{sc1, sc2, sc1, sc2, sc1, sc2},
+			want: []apis.SubConn{sc2, sc1},
+			got:  []apis.SubConn{sc1, sc2, sc1, sc2, sc1, sc2},
 			pass: true,
 		},
 		{
 			desc: "2 elements RR not RR, mistake in first iter",
-			want: []balancer.SubConn{sc1, sc2},
-			got:  []balancer.SubConn{sc1, sc1, sc1, sc2, sc1, sc2},
+			want: []apis.SubConn{sc1, sc2},
+			got:  []apis.SubConn{sc1, sc1, sc1, sc2, sc1, sc2},
 			pass: false,
 		},
 		{
 			desc: "2 elements RR not RR, mistake in second iter",
-			want: []balancer.SubConn{sc1, sc2},
-			got:  []balancer.SubConn{sc1, sc2, sc1, sc1, sc1, sc2},
+			want: []apis.SubConn{sc1, sc2},
+			got:  []apis.SubConn{sc1, sc2, sc1, sc1, sc1, sc2},
 			pass: false,
 		},
 		{
 			desc: "2 elements weighted RR",
-			want: []balancer.SubConn{sc1, sc1, sc2},
-			got:  []balancer.SubConn{sc1, sc1, sc2, sc1, sc1, sc2},
+			want: []apis.SubConn{sc1, sc1, sc2},
+			got:  []apis.SubConn{sc1, sc1, sc2, sc1, sc1, sc2},
 			pass: true,
 		},
 		{
 			desc: "2 elements weighted RR different order",
-			want: []balancer.SubConn{sc1, sc1, sc2},
-			got:  []balancer.SubConn{sc1, sc2, sc1, sc1, sc2, sc1},
+			want: []apis.SubConn{sc1, sc1, sc2},
+			got:  []apis.SubConn{sc1, sc2, sc1, sc1, sc2, sc1},
 			pass: true,
 		},
 
 		{
 			desc: "3 elements RR",
-			want: []balancer.SubConn{sc1, sc2, sc3},
-			got:  []balancer.SubConn{sc1, sc2, sc3, sc1, sc2, sc3, sc1, sc2, sc3},
+			want: []apis.SubConn{sc1, sc2, sc3},
+			got:  []apis.SubConn{sc1, sc2, sc3, sc1, sc2, sc3, sc1, sc2, sc3},
 			pass: true,
 		},
 		{
 			desc: "3 elements RR different order",
-			want: []balancer.SubConn{sc1, sc2, sc3},
-			got:  []balancer.SubConn{sc3, sc2, sc1, sc3, sc2, sc1},
+			want: []apis.SubConn{sc1, sc2, sc3},
+			got:  []apis.SubConn{sc3, sc2, sc1, sc3, sc2, sc1},
 			pass: true,
 		},
 		{
 			desc: "3 elements weighted RR",
-			want: []balancer.SubConn{sc1, sc1, sc1, sc2, sc2, sc3},
-			got:  []balancer.SubConn{sc1, sc2, sc3, sc1, sc2, sc1, sc1, sc2, sc3, sc1, sc2, sc1},
+			want: []apis.SubConn{sc1, sc1, sc1, sc2, sc2, sc3},
+			got:  []apis.SubConn{sc1, sc2, sc3, sc1, sc2, sc1, sc1, sc2, sc3, sc1, sc2, sc1},
 			pass: true,
 		},
 		{
 			desc: "3 elements weighted RR not RR, mistake in first iter",
-			want: []balancer.SubConn{sc1, sc1, sc1, sc2, sc2, sc3},
-			got:  []balancer.SubConn{sc1, sc2, sc1, sc1, sc2, sc1, sc1, sc2, sc3, sc1, sc2, sc1},
+			want: []apis.SubConn{sc1, sc1, sc1, sc2, sc2, sc3},
+			got:  []apis.SubConn{sc1, sc2, sc1, sc1, sc2, sc1, sc1, sc2, sc3, sc1, sc2, sc1},
 			pass: false,
 		},
 		{
 			desc: "3 elements weighted RR not RR, mistake in second iter",
-			want: []balancer.SubConn{sc1, sc1, sc1, sc2, sc2, sc3},
-			got:  []balancer.SubConn{sc1, sc2, sc3, sc1, sc2, sc1, sc1, sc1, sc3, sc1, sc2, sc1},
+			want: []apis.SubConn{sc1, sc1, sc1, sc2, sc2, sc3},
+			got:  []apis.SubConn{sc1, sc2, sc3, sc1, sc2, sc1, sc1, sc1, sc3, sc1, sc2, sc1},
 			pass: false,
 		},
 	}

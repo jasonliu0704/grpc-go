@@ -22,6 +22,7 @@
 package roundrobin
 
 import (
+	"google.golang.org/grpc/balancer/apis"
 	"sync"
 
 	"google.golang.org/grpc/balancer"
@@ -51,7 +52,7 @@ func (*rrPickerBuilder) Build(info base.PickerBuildInfo) balancer.Picker {
 	if len(info.ReadySCs) == 0 {
 		return base.NewErrPicker(balancer.ErrNoSubConnAvailable)
 	}
-	var scs []balancer.SubConn
+	var scs []apis.SubConn
 	for sc := range info.ReadySCs {
 		scs = append(scs, sc)
 	}
@@ -68,7 +69,7 @@ type rrPicker struct {
 	// subConns is the snapshot of the roundrobin balancer when this picker was
 	// created. The slice is immutable. Each Get() will do a round robin
 	// selection from it and return the selected SubConn.
-	subConns []balancer.SubConn
+	subConns []apis.SubConn
 
 	mu   sync.Mutex
 	next int

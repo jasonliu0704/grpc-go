@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"math"
 	"reflect"
 	"strings"
@@ -136,7 +137,7 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 	cc := &ClientConn{
 		target:            target,
 		csMgr:             &connectivityStateManager{},
-		conns:             make(map[*addrConn]struct{}),
+		conns:             make(map[*AddrConn]struct{}),
 		dopts:             defaultDialOptions(),
 		blockingpicker:    newPickerWrapper(),
 		czData:            new(channelzData),
@@ -498,7 +499,7 @@ type ClientConn struct {
 	mu              sync.RWMutex
 	resolverWrapper *ccResolverWrapper
 	sc              *ServiceConfig
-	conns           map[*addrConn]struct{}
+	conns           map[*AddrConn]struct{}
 	// Keepalive parameter can be updated if a GoAway is received.
 	mkp             keepalive.ClientParameters
 	curBalancerName string
@@ -726,7 +727,7 @@ func (cc *ClientConn) switchBalancer(name string) {
 	cc.balancerWrapper = newCCBalancerWrapper(cc, builder, cc.balancerBuildOpts)
 }
 
-func (cc *ClientConn) handleSubConnStateChange(sc balancer.SubConn, s connectivity.State, err error) {
+func (cc *ClientConn) handleSubConnStateChange(sc apis.SubConn, s connectivity.State, err error) {
 	cc.mu.Lock()
 	if cc.conns == nil {
 		cc.mu.Unlock()
@@ -741,8 +742,8 @@ func (cc *ClientConn) handleSubConnStateChange(sc balancer.SubConn, s connectivi
 // newAddrConn creates an addrConn for addrs and adds it to cc.conns.
 //
 // Caller needs to make sure len(addrs) > 0.
-func (cc *ClientConn) newAddrConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (*addrConn, error) {
-	ac := &addrConn{
+func (cc *ClientConn) newAddrConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (*AddrConn, error) {
+	ac := &AddrConn{
 		state:        connectivity.Idle,
 		cc:           cc,
 		addrs:        addrs,
@@ -776,7 +777,7 @@ func (cc *ClientConn) newAddrConn(addrs []resolver.Address, opts balancer.NewSub
 
 // removeAddrConn removes the addrConn in the subConn from clientConn.
 // It also tears down the ac with the given error.
-func (cc *ClientConn) removeAddrConn(ac *addrConn, err error) {
+func (cc *ClientConn) removeAddrConn(ac *AddrConn, err error) {
 	cc.mu.Lock()
 	if cc.conns == nil {
 		cc.mu.Unlock()
@@ -824,7 +825,7 @@ func (cc *ClientConn) incrCallsFailed() {
 // connect starts creating a transport.
 // It does nothing if the ac is not IDLE.
 // TODO(bar) Move this to the addrConn section.
-func (ac *addrConn) connect() error {
+func (ac *AddrConn) connect() error {
 	ac.mu.Lock()
 	if ac.state == connectivity.Shutdown {
 		ac.mu.Unlock()
@@ -859,7 +860,7 @@ func (ac *addrConn) connect() error {
 //  - If true, it updates ac.addrs and returns true. The ac will keep using
 //    the existing connection.
 //  - If false, it does nothing and returns false.
-func (ac *addrConn) tryUpdateAddrs(addrs []resolver.Address) bool {
+func (ac *AddrConn) tryUpdateAddrs(addrs []resolver.Address) bool {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
 	channelz.Infof(logger, ac.channelzID, "addrConn: tryUpdateAddrs curAddr: %v, addrs: %v", ac.curAddr, addrs)
@@ -1075,13 +1076,13 @@ func (cc *ClientConn) Close() error {
 }
 
 // addrConn is a network connection to a given address.
-type addrConn struct {
+type AddrConn struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
 	cc     *ClientConn
 	dopts  dialOptions
-	acbw   balancer.SubConn
+	acbw   apis.SubConn
 	scopts balancer.NewSubConnOptions
 
 	// transport is set when there's a viable transport (note: ac state may not be READY as LB channel
@@ -1104,8 +1105,13 @@ type addrConn struct {
 	czData     *channelzData
 }
 
+// GetCurAddr return cur addr
+func (ac *AddrConn) GetCurAddr() resolver.Address{
+	return ac.curAddr
+}
+
 // Note: this requires a lock on ac.mu.
-func (ac *addrConn) updateConnectivityState(s connectivity.State, lastErr error) {
+func (ac *AddrConn) updateConnectivityState(s connectivity.State, lastErr error) {
 	if ac.state == s {
 		return
 	}
@@ -1116,7 +1122,7 @@ func (ac *addrConn) updateConnectivityState(s connectivity.State, lastErr error)
 
 // adjustParams updates parameters used to create transports upon
 // receiving a GoAway.
-func (ac *addrConn) adjustParams(r transport.GoAwayReason) {
+func (ac *AddrConn) adjustParams(r transport.GoAwayReason) {
 	switch r {
 	case transport.GoAwayTooManyPings:
 		v := 2 * ac.dopts.copts.KeepaliveParams.Time
@@ -1128,7 +1134,7 @@ func (ac *addrConn) adjustParams(r transport.GoAwayReason) {
 	}
 }
 
-func (ac *addrConn) resetTransport() {
+func (ac *AddrConn) resetTransport() {
 	for i := 0; ; i++ {
 		if i > 0 {
 			ac.cc.resolveNow(resolver.ResolveNowOptions{})
@@ -1228,7 +1234,7 @@ func (ac *addrConn) resetTransport() {
 // tryAllAddrs tries to creates a connection to the addresses, and stop when at the
 // first successful one. It returns the transport, the address and a Event in
 // the successful case. The Event fires when the returned transport disconnects.
-func (ac *addrConn) tryAllAddrs(addrs []resolver.Address, connectDeadline time.Time) (transport.ClientTransport, resolver.Address, *grpcsync.Event, error) {
+func (ac *AddrConn) tryAllAddrs(addrs []resolver.Address, connectDeadline time.Time) (transport.ClientTransport, resolver.Address, *grpcsync.Event, error) {
 	var firstConnErr error
 	for _, addr := range addrs {
 		ac.mu.Lock()
@@ -1266,7 +1272,7 @@ func (ac *addrConn) tryAllAddrs(addrs []resolver.Address, connectDeadline time.T
 // createTransport creates a connection to addr. It returns the transport and a
 // Event in the successful case. The Event fires when the returned transport
 // disconnects.
-func (ac *addrConn) createTransport(addr resolver.Address, copts transport.ConnectOptions, connectDeadline time.Time) (transport.ClientTransport, *grpcsync.Event, error) {
+func (ac *AddrConn) createTransport(addr resolver.Address, copts transport.ConnectOptions, connectDeadline time.Time) (transport.ClientTransport, *grpcsync.Event, error) {
 	prefaceReceived := make(chan struct{})
 	onCloseCalled := make(chan struct{})
 	reconnect := grpcsync.NewEvent()
@@ -1354,7 +1360,7 @@ func (ac *addrConn) createTransport(addr resolver.Address, copts transport.Conne
 // It sets addrConn to READY if the health checking stream is not started.
 //
 // Caller must hold ac.mu.
-func (ac *addrConn) startHealthCheck(ctx context.Context) {
+func (ac *AddrConn) startHealthCheck(ctx context.Context) {
 	var healthcheckManagingState bool
 	defer func() {
 		if !healthcheckManagingState {
@@ -1415,7 +1421,7 @@ func (ac *addrConn) startHealthCheck(ctx context.Context) {
 	}()
 }
 
-func (ac *addrConn) resetConnectBackoff() {
+func (ac *AddrConn) resetConnectBackoff() {
 	ac.mu.Lock()
 	close(ac.resetBackoff)
 	ac.backoffIdx = 0
@@ -1426,7 +1432,7 @@ func (ac *addrConn) resetConnectBackoff() {
 // getReadyTransport returns the transport if ac's state is READY.
 // Otherwise it returns nil, false.
 // If ac's state is IDLE, it will trigger ac to connect.
-func (ac *addrConn) getReadyTransport() (transport.ClientTransport, bool) {
+func (ac *AddrConn) getReadyTransport() (transport.ClientTransport, bool) {
 	ac.mu.Lock()
 	if ac.state == connectivity.Ready && ac.transport != nil {
 		t := ac.transport
@@ -1450,7 +1456,7 @@ func (ac *addrConn) getReadyTransport() (transport.ClientTransport, bool) {
 // some edge cases (e.g., the caller opens and closes many addrConn's in a
 // tight loop.
 // tearDown doesn't remove ac from ac.cc.conns.
-func (ac *addrConn) tearDown(err error) {
+func (ac *AddrConn) tearDown(err error) {
 	ac.mu.Lock()
 	if ac.state == connectivity.Shutdown {
 		ac.mu.Unlock()
@@ -1489,13 +1495,13 @@ func (ac *addrConn) tearDown(err error) {
 	ac.mu.Unlock()
 }
 
-func (ac *addrConn) getState() connectivity.State {
+func (ac *AddrConn) getState() connectivity.State {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
 	return ac.state
 }
 
-func (ac *addrConn) ChannelzMetric() *channelz.ChannelInternalMetric {
+func (ac *AddrConn) ChannelzMetric() *channelz.ChannelInternalMetric {
 	ac.mu.Lock()
 	addr := ac.curAddr.Addr
 	ac.mu.Unlock()
@@ -1509,16 +1515,16 @@ func (ac *addrConn) ChannelzMetric() *channelz.ChannelInternalMetric {
 	}
 }
 
-func (ac *addrConn) incrCallsStarted() {
+func (ac *AddrConn) incrCallsStarted() {
 	atomic.AddInt64(&ac.czData.callsStarted, 1)
 	atomic.StoreInt64(&ac.czData.lastCallStartedTime, time.Now().UnixNano())
 }
 
-func (ac *addrConn) incrCallsSucceeded() {
+func (ac *AddrConn) incrCallsSucceeded() {
 	atomic.AddInt64(&ac.czData.callsSucceeded, 1)
 }
 
-func (ac *addrConn) incrCallsFailed() {
+func (ac *AddrConn) incrCallsFailed() {
 	atomic.AddInt64(&ac.czData.callsFailed, 1)
 }
 

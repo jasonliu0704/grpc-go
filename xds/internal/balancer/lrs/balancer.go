@@ -22,6 +22,7 @@ package lrs
 import (
 	"encoding/json"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"sync"
 
 	"google.golang.org/grpc/balancer"
@@ -122,7 +123,7 @@ func (b *lrsBalancer) ResolverError(err error) {
 	}
 }
 
-func (b *lrsBalancer) UpdateSubConnState(sc balancer.SubConn, s balancer.SubConnState) {
+func (b *lrsBalancer) UpdateSubConnState(sc apis.SubConn, s balancer.SubConnState) {
 	if b.lb != nil {
 		b.lb.UpdateSubConnState(sc, s)
 	}

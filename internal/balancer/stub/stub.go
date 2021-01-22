@@ -19,7 +19,10 @@
 // Package stub implements a balancer for testing purposes.
 package stub
 
-import "google.golang.org/grpc/balancer"
+import (
+	"google.golang.org/grpc/balancer"
+	"google.golang.org/grpc/balancer/apis"
+)
 
 // BalancerFuncs contains all balancer.Balancer functions with a preceding
 // *BalancerData parameter for passing additional instance information.  Any
@@ -31,7 +34,7 @@ type BalancerFuncs struct {
 
 	UpdateClientConnState func(*BalancerData, balancer.ClientConnState) error
 	ResolverError         func(*BalancerData, error)
-	UpdateSubConnState    func(*BalancerData, balancer.SubConn, balancer.SubConnState)
+	UpdateSubConnState    func(*BalancerData, apis.SubConn, balancer.SubConnState)
 	Close                 func(*BalancerData)
 }
 
@@ -63,7 +66,7 @@ func (b *bal) ResolverError(e error) {
 	}
 }
 
-func (b *bal) UpdateSubConnState(sc balancer.SubConn, scs balancer.SubConnState) {
+func (b *bal) UpdateSubConnState(sc apis.SubConn, scs balancer.SubConnState) {
 	if b.bf.UpdateSubConnState != nil {
 		b.bf.UpdateSubConnState(b.bd, sc, scs)
 	}

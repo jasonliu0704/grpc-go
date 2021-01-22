@@ -21,6 +21,7 @@ package main
 
 import (
 	"context"
+	"google.golang.org/grpc/balancer/roundrobin"
 	"log"
 	"os"
 	"time"
@@ -36,7 +37,7 @@ const (
 
 func main() {
 	// Set up a connection to the server.
-	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithBalancerName(roundrobin.Name))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -49,6 +50,9 @@ func main() {
 		name = os.Args[1]
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	// set value in ctx
+	ctx = context.WithValue(ctx, "test-key", "test-value")
+
 	defer cancel()
 	r, err := c.SayHello(ctx, &pb.HelloRequest{Name: name})
 	if err != nil {

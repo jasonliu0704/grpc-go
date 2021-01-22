@@ -23,6 +23,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"reflect"
 	"testing"
 	"time"
@@ -72,8 +73,8 @@ func init() {
 	balancer.Register(&edsBalancerBuilder{})
 }
 
-func subConnFromPicker(p balancer.Picker) func() balancer.SubConn {
-	return func() balancer.SubConn {
+func subConnFromPicker(p balancer.Picker) func() apis.SubConn {
+	return func() apis.SubConn {
 		scst, _ := p.Pick(balancer.PickInfo{})
 		return scst.SubConn
 	}
@@ -99,14 +100,14 @@ type noopTestClientConn struct {
 	balancer.ClientConn
 }
 
-func (t *noopTestClientConn) NewSubConn([]resolver.Address, balancer.NewSubConnOptions) (balancer.SubConn, error) {
+func (t *noopTestClientConn) NewSubConn([]resolver.Address, balancer.NewSubConnOptions) (apis.SubConn, error) {
 	return nil, nil
 }
 
 func (noopTestClientConn) Target() string { return testServiceName }
 
 type scStateChange struct {
-	sc    balancer.SubConn
+	sc    apis.SubConn
 	state connectivity.State
 }
 
@@ -118,7 +119,7 @@ type fakeEDSBalancer struct {
 	serviceName        *testutils.Channel
 }
 
-func (f *fakeEDSBalancer) handleSubConnStateChange(sc balancer.SubConn, state connectivity.State) {
+func (f *fakeEDSBalancer) handleSubConnStateChange(sc apis.SubConn, state connectivity.State) {
 	f.subconnStateChange.Send(&scStateChange{sc: sc, state: state})
 }
 
@@ -269,7 +270,7 @@ func (b *fakeBalancer) UpdateClientConnState(balancer.ClientConnState) error {
 	panic("implement me")
 }
 
-func (b *fakeBalancer) UpdateSubConnState(balancer.SubConn, balancer.SubConnState) {
+func (b *fakeBalancer) UpdateSubConnState(apis.SubConn, balancer.SubConnState) {
 	panic("implement me")
 }
 

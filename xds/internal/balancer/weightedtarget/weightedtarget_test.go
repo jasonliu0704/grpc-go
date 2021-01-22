@@ -21,6 +21,7 @@ package weightedtarget
 import (
 	"encoding/json"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"testing"
 	"time"
 
@@ -211,14 +212,14 @@ func TestWeightedTarget(t *testing.T) {
 
 	// Test roundrobin pick with backends in cluster_2.
 	p2 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc2, sc3}
+	want := []apis.SubConn{sc2, sc3}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p2)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
 }
 
-func subConnFromPicker(p balancer.Picker) func() balancer.SubConn {
-	return func() balancer.SubConn {
+func subConnFromPicker(p balancer.Picker) func() apis.SubConn {
+	return func() apis.SubConn {
 		scst, _ := p.Pick(balancer.PickInfo{})
 		return scst.SubConn
 	}

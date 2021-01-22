@@ -18,6 +18,7 @@ package edsbalancer
 
 import (
 	"encoding/json"
+	"google.golang.org/grpc/balancer/apis"
 	"reflect"
 	"sync"
 	"time"
@@ -92,7 +93,7 @@ type edsBalancerImpl struct {
 	priorityInitTimer *time.Timer
 
 	subConnMu         sync.Mutex
-	subConnToPriority map[balancer.SubConn]priorityType
+	subConnToPriority map[apis.SubConn]priorityType
 
 	pickerMu               sync.Mutex
 	dropConfig             []xdsclient.OverloadDropConfig
@@ -113,7 +114,7 @@ func newEDSBalancerImpl(cc balancer.ClientConn, enqueueState func(priorityType, 
 
 		priorityToLocalities: make(map[priorityType]*balancerGroupWithConfig),
 		priorityToState:      make(map[priorityType]*balancer.State),
-		subConnToPriority:    make(map[balancer.SubConn]priorityType),
+		subConnToPriority:    make(map[apis.SubConn]priorityType),
 	}
 	// Don't start balancer group here. Start it when handling the first EDS
 	// response. Otherwise the balancer group will be started with round-robin,
@@ -387,7 +388,7 @@ func (edsImpl *edsBalancerImpl) handleEDSResponsePerPriority(bgwc *balancerGroup
 }
 
 // handleSubConnStateChange handles the state change and update pickers accordingly.
-func (edsImpl *edsBalancerImpl) handleSubConnStateChange(sc balancer.SubConn, s connectivity.State) {
+func (edsImpl *edsBalancerImpl) handleSubConnStateChange(sc apis.SubConn, s connectivity.State) {
 	edsImpl.subConnMu.Lock()
 	var bgwc *balancerGroupWithConfig
 	if p, ok := edsImpl.subConnToPriority[sc]; ok {
@@ -451,14 +452,14 @@ type edsBalancerWrapperCC struct {
 	parent   *edsBalancerImpl
 }
 
-func (ebwcc *edsBalancerWrapperCC) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (balancer.SubConn, error) {
+func (ebwcc *edsBalancerWrapperCC) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (apis.SubConn, error) {
 	return ebwcc.parent.newSubConn(ebwcc.priority, addrs, opts)
 }
 func (ebwcc *edsBalancerWrapperCC) UpdateState(state balancer.State) {
 	ebwcc.parent.enqueueChildBalancerStateUpdate(ebwcc.priority, state)
 }
 
-func (edsImpl *edsBalancerImpl) newSubConn(priority priorityType, addrs []resolver.Address, opts balancer.NewSubConnOptions) (balancer.SubConn, error) {
+func (edsImpl *edsBalancerImpl) newSubConn(priority priorityType, addrs []resolver.Address, opts balancer.NewSubConnOptions) (apis.SubConn, error) {
 	sc, err := edsImpl.cc.NewSubConn(addrs, opts)
 	if err != nil {
 		return nil, err

@@ -21,6 +21,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"math"
 	"testing"
 	"time"
@@ -49,7 +50,7 @@ func (b *magicalLB) Build(cc balancer.ClientConn, opts balancer.BuildOptions) ba
 
 func (b *magicalLB) ResolverError(error) {}
 
-func (b *magicalLB) UpdateSubConnState(balancer.SubConn, balancer.SubConnState) {}
+func (b *magicalLB) UpdateSubConnState(apis.SubConn, balancer.SubConnState) {}
 
 func (b *magicalLB) UpdateClientConnState(balancer.ClientConnState) error {
 	return nil

@@ -20,6 +20,7 @@ package grpc
 
 import (
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"sync"
 
 	"google.golang.org/grpc/balancer"
@@ -32,7 +33,7 @@ import (
 
 // scStateUpdate contains the subConn and the new state it changed to.
 type scStateUpdate struct {
-	sc    balancer.SubConn
+	sc    apis.SubConn
 	state connectivity.State
 	err   error
 }
@@ -98,7 +99,7 @@ func (ccb *ccBalancerWrapper) close() {
 	ccb.done.Fire()
 }
 
-func (ccb *ccBalancerWrapper) handleSubConnStateChange(sc balancer.SubConn, s connectivity.State, err error) {
+func (ccb *ccBalancerWrapper) handleSubConnStateChange(sc apis.SubConn, s connectivity.State, err error) {
 	// When updating addresses for a SubConn, if the address in use is not in
 	// the new addresses, the old ac will be tearDown() and a new ac will be
 	// created. tearDown() generates a state change with Shutdown state, we
@@ -128,7 +129,7 @@ func (ccb *ccBalancerWrapper) resolverError(err error) {
 	ccb.balancerMu.Unlock()
 }
 
-func (ccb *ccBalancerWrapper) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (balancer.SubConn, error) {
+func (ccb *ccBalancerWrapper) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (apis.SubConn, error) {
 	if len(addrs) <= 0 {
 		return nil, fmt.Errorf("grpc: cannot create SubConn with empty address list")
 	}
@@ -149,7 +150,7 @@ func (ccb *ccBalancerWrapper) NewSubConn(addrs []resolver.Address, opts balancer
 	return acbw, nil
 }
 
-func (ccb *ccBalancerWrapper) RemoveSubConn(sc balancer.SubConn) {
+func (ccb *ccBalancerWrapper) RemoveSubConn(sc apis.SubConn) {
 	acbw, ok := sc.(*acBalancerWrapper)
 	if !ok {
 		return
@@ -190,9 +191,12 @@ func (ccb *ccBalancerWrapper) Target() string {
 // It implements balancer.SubConn interface.
 type acBalancerWrapper struct {
 	mu sync.Mutex
-	ac *addrConn
+	ac *AddrConn
 }
 
+func (acbw *acBalancerWrapper) GetAddrConnection() *AddrConn {
+	return acbw.ac
+}
 func (acbw *acBalancerWrapper) UpdateAddresses(addrs []resolver.Address) {
 	acbw.mu.Lock()
 	defer acbw.mu.Unlock()
@@ -239,7 +243,7 @@ func (acbw *acBalancerWrapper) Connect() {
 	acbw.ac.connect()
 }
 
-func (acbw *acBalancerWrapper) getAddrConn() *addrConn {
+func (acbw *acBalancerWrapper) getAddrConn() *AddrConn {
 	acbw.mu.Lock()
 	defer acbw.mu.Unlock()
 	return acbw.ac

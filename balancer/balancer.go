@@ -24,6 +24,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"google.golang.org/grpc/balancer/apis"
 	"net"
 	"strings"
 
@@ -75,37 +76,6 @@ func Get(name string) Builder {
 	return nil
 }
 
-// SubConn represents a gRPC sub connection.
-// Each sub connection contains a list of addresses. gRPC will
-// try to connect to them (in sequence), and stop trying the
-// remainder once one connection is successful.
-//
-// The reconnect backoff will be applied on the list, not a single address.
-// For example, try_on_all_addresses -> backoff -> try_on_all_addresses.
-//
-// All SubConns start in IDLE, and will not try to connect. To trigger
-// the connecting, Balancers must call Connect.
-// When the connection encounters an error, it will reconnect immediately.
-// When the connection becomes IDLE, it will not reconnect unless Connect is
-// called.
-//
-// This interface is to be implemented by gRPC. Users should not need a
-// brand new implementation of this interface. For the situations like
-// testing, the new implementation should embed this interface. This allows
-// gRPC to add new methods to this interface.
-type SubConn interface {
-	// UpdateAddresses updates the addresses used in this SubConn.
-	// gRPC checks if currently-connected address is still in the new list.
-	// If it's in the list, the connection will be kept.
-	// If it's not in the list, the connection will gracefully closed, and
-	// a new connection will be created.
-	//
-	// This will trigger a state transition for the SubConn.
-	UpdateAddresses([]resolver.Address)
-	// Connect starts the connecting for this SubConn.
-	Connect()
-}
-
 // NewSubConnOptions contains options to create new SubConn.
 type NewSubConnOptions struct {
 	// CredsBundle is the credentials bundle that will be used in the created
@@ -139,10 +109,10 @@ type ClientConn interface {
 	// NewSubConn is called by balancer to create a new SubConn.
 	// It doesn't block and wait for the connections to be established.
 	// Behaviors of the SubConn can be controlled by options.
-	NewSubConn([]resolver.Address, NewSubConnOptions) (SubConn, error)
+	NewSubConn([]resolver.Address, NewSubConnOptions) (apis.SubConn, error)
 	// RemoveSubConn removes the SubConn from ClientConn.
 	// The SubConn will be shutdown.
-	RemoveSubConn(SubConn)
+	RemoveSubConn(apis.SubConn)
 
 	// UpdateState notifies gRPC that the balancer's internal state has
 	// changed.
@@ -247,7 +217,7 @@ type PickResult struct {
 	// If the state is not Ready, gRPC will block the RPC until a new Picker is
 	// provided by the balancer (using ClientConn.UpdateState).  The SubConn
 	// must be one returned by ClientConn.NewSubConn.
-	SubConn SubConn
+	SubConn apis.SubConn
 
 	// Done is called when the RPC is completed.  If the SubConn is not ready,
 	// this will be called with a nil parameter.  If the SubConn is not a valid
@@ -310,7 +280,7 @@ type Balancer interface {
 	ResolverError(error)
 	// UpdateSubConnState is called by gRPC when the state of a SubConn
 	// changes.
-	UpdateSubConnState(SubConn, SubConnState)
+	UpdateSubConnState(apis.SubConn, SubConnState)
 	// Close closes the balancer. The balancer is not required to call
 	// ClientConn.RemoveSubConn for its existing SubConns.
 	Close()
