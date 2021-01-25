@@ -1,7 +1,9 @@
 package customRoundrobin
 
 import (
+	"context"
 	"google.golang.org/grpc/balancer/apis"
+	"google.golang.org/grpc/metadata"
 	"strings"
 	"sync"
 
@@ -60,22 +62,22 @@ Pick is the core logic of custom rooundrobin
 For stateful load balancing, we look for the "lb-addr" from the context,
 if the addr is present, we need to route request to the addr as overwritten,
 if not, we switch to the regular roundrobin
- */
+*/
 func (p *rrPicker) Pick(pi balancer.PickInfo) (balancer.PickResult, error) {
 	p.mu.Lock()
 
 	var chosenSc apis.SubConn
 
 	// subConn pick on user request
-	if overwriteAddr, ok := pi.Ctx.Value(OverWriteKeyName).(string); ok {
+	if overwriteAddr, ok := stickyKeyFromContext(pi.Ctx, OverWriteKeyName); ok {
 		for _, sc := range p.subConns {
-			curAddr := sc.GetAddrConnection().GetCurAddr()	//reflect.ValueOf(sc).Elem().FieldByName("ac").Interface().(*addrConn)
+			curAddr := sc.GetAddrConnection() //reflect.ValueOf(sc).Elem().FieldByName("ac").Interface().(*addrConn)
 			if strings.Compare(curAddr.Addr, overwriteAddr) == 0 {
 				// add match, route to the subconnection
 				chosenSc = sc
 			}
 		}
-	}else{
+	} else {
 		// subConn pick on lb
 		chosenSc = p.subConns[p.next]
 		p.next = (p.next + 1) % len(p.subConns)
@@ -83,4 +85,34 @@ func (p *rrPicker) Pick(pi balancer.PickInfo) (balancer.PickResult, error) {
 
 	p.mu.Unlock()
 	return balancer.PickResult{SubConn: chosenSc}, nil
+}
+
+// Get one value from metadata in ctx with key stickinessMDKey.
+//
+// It returns "", false if stickinessMDKey is an empty string.
+func stickyKeyFromContext(ctx context.Context, stickinessMDKey string) (string, bool) {
+	if stickinessMDKey == "" {
+		return "", false
+	}
+
+	md, added, ok := metadata.FromOutgoingContextRaw(ctx)
+	if !ok {
+		return "", false
+	}
+
+	if vv, ok := md[stickinessMDKey]; ok {
+		if len(vv) > 0 {
+			return vv[0], true
+		}
+	}
+
+	for _, ss := range added {
+		for i := 0; i < len(ss)-1; i += 2 {
+			if ss[i] == stickinessMDKey {
+				return ss[i+1], true
+			}
+		}
+	}
+
+	return "", false
 }

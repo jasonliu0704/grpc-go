@@ -194,8 +194,8 @@ type acBalancerWrapper struct {
 	ac *AddrConn
 }
 
-func (acbw *acBalancerWrapper) GetAddrConnection() *AddrConn {
-	return acbw.ac
+func (acbw *acBalancerWrapper) GetAddrConnection() resolver.Address {
+	return acbw.ac.curAddr
 }
 func (acbw *acBalancerWrapper) UpdateAddresses(addrs []resolver.Address) {
 	acbw.mu.Lock()

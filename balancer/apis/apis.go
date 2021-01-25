@@ -1,7 +1,6 @@
 package apis
 
 import (
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/resolver"
 )
 
@@ -35,6 +34,5 @@ type SubConn interface {
 	// Connect starts the connecting for this SubConn.
 	Connect()
 	// gets the addressConnection
-	GetAddrConnection() *grpc.AddrConn
+	GetAddrConnection() resolver.Address
 }
-
