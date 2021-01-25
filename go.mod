@@ -1,4 +1,4 @@
-module google.golang.org/grpc
+module github.com/jasonliu0704/grpc-go/tags
 
 go 1.11
 
