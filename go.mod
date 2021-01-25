@@ -1,4 +1,4 @@
-module github.com/jasonliu0704/grpc-go
+module github.com/jasonliu0704/grpc
 
 go 1.11
 
