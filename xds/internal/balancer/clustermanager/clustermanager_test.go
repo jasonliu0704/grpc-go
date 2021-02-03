@@ -21,6 +21,7 @@ package clustermanager
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"testing"
 	"time"
 
@@ -103,7 +104,7 @@ func init() {
 	balancergroup.DefaultSubBalancerCloseTimeout = time.Millisecond
 }
 
-func testPick(t *testing.T, p balancer.Picker, info balancer.PickInfo, wantSC balancer.SubConn, wantErr error) {
+func testPick(t *testing.T, p balancer.Picker, info balancer.PickInfo, wantSC apis.SubConn, wantErr error) {
 	t.Helper()
 	for i := 0; i < 5; i++ {
 		gotSCSt, err := p.Pick(info)
@@ -147,7 +148,7 @@ func TestClusterPicks(t *testing.T) {
 		t.Fatalf("failed to update ClientConn state: %v", err)
 	}
 
-	m1 := make(map[resolver.Address]balancer.SubConn)
+	m1 := make(map[resolver.Address]apis.SubConn)
 	// Verify that a subconn is created with the address, and the hierarchy path
 	// in the address is cleared.
 	for range wantAddrs {
@@ -166,7 +167,7 @@ func TestClusterPicks(t *testing.T) {
 	p1 := <-cc.NewPickerCh
 	for _, tt := range []struct {
 		pickInfo balancer.PickInfo
-		wantSC   balancer.SubConn
+		wantSC   apis.SubConn
 		wantErr  error
 	}{
 		{
@@ -225,7 +226,7 @@ func TestConfigUpdateAddCluster(t *testing.T) {
 		t.Fatalf("failed to update ClientConn state: %v", err)
 	}
 
-	m1 := make(map[resolver.Address]balancer.SubConn)
+	m1 := make(map[resolver.Address]apis.SubConn)
 	// Verify that a subconn is created with the address, and the hierarchy path
 	// in the address is cleared.
 	for range wantAddrs {
@@ -244,7 +245,7 @@ func TestConfigUpdateAddCluster(t *testing.T) {
 	p1 := <-cc.NewPickerCh
 	for _, tt := range []struct {
 		pickInfo balancer.PickInfo
-		wantSC   balancer.SubConn
+		wantSC   apis.SubConn
 		wantErr  error
 	}{
 		{
@@ -317,7 +318,7 @@ func TestConfigUpdateAddCluster(t *testing.T) {
 	p2 := <-cc.NewPickerCh
 	for _, tt := range []struct {
 		pickInfo balancer.PickInfo
-		wantSC   balancer.SubConn
+		wantSC   apis.SubConn
 		wantErr  error
 	}{
 		{
@@ -382,7 +383,7 @@ func TestRoutingConfigUpdateDeleteAll(t *testing.T) {
 		t.Fatalf("failed to update ClientConn state: %v", err)
 	}
 
-	m1 := make(map[resolver.Address]balancer.SubConn)
+	m1 := make(map[resolver.Address]apis.SubConn)
 	// Verify that a subconn is created with the address, and the hierarchy path
 	// in the address is cleared.
 	for range wantAddrs {
@@ -401,7 +402,7 @@ func TestRoutingConfigUpdateDeleteAll(t *testing.T) {
 	p1 := <-cc.NewPickerCh
 	for _, tt := range []struct {
 		pickInfo balancer.PickInfo
-		wantSC   balancer.SubConn
+		wantSC   apis.SubConn
 		wantErr  error
 	}{
 		{
@@ -466,7 +467,7 @@ func TestRoutingConfigUpdateDeleteAll(t *testing.T) {
 		t.Fatalf("failed to update ClientConn state: %v", err)
 	}
 
-	m2 := make(map[resolver.Address]balancer.SubConn)
+	m2 := make(map[resolver.Address]apis.SubConn)
 	// Verify that a subconn is created with the address, and the hierarchy path
 	// in the address is cleared.
 	for range wantAddrs {
@@ -485,7 +486,7 @@ func TestRoutingConfigUpdateDeleteAll(t *testing.T) {
 	p3 := <-cc.NewPickerCh
 	for _, tt := range []struct {
 		pickInfo balancer.PickInfo
-		wantSC   balancer.SubConn
+		wantSC   apis.SubConn
 		wantErr  error
 	}{
 		{

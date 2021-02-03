@@ -21,6 +21,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -36,11 +37,11 @@ const goroutineCount = 5
 
 var (
 	testT  = &testTransport{}
-	testSC = &acBalancerWrapper{ac: &addrConn{
+	testSC = &acBalancerWrapper{ac: &AddrConn{
 		state:     connectivity.Ready,
 		transport: testT,
 	}}
-	testSCNotReady = &acBalancerWrapper{ac: &addrConn{
+	testSCNotReady = &acBalancerWrapper{ac: &AddrConn{
 		state: connectivity.TransientFailure,
 	}}
 )
@@ -51,7 +52,7 @@ type testTransport struct {
 
 type testingPicker struct {
 	err       error
-	sc        balancer.SubConn
+	sc        apis.SubConn
 	maxCalled int64
 }
 

@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"net"
 	"reflect"
 	"testing"
@@ -58,7 +59,7 @@ const testBalancerName = "testbalancer"
 // It's used to test whether options for NewSubConn are applied correctly.
 type testBalancer struct {
 	cc balancer.ClientConn
-	sc balancer.SubConn
+	sc apis.SubConn
 
 	newSubConnOptions balancer.NewSubConnOptions
 	pickInfos         []balancer.PickInfo
@@ -94,7 +95,7 @@ func (b *testBalancer) UpdateClientConnState(state balancer.ClientConnState) err
 	return nil
 }
 
-func (b *testBalancer) UpdateSubConnState(sc balancer.SubConn, s balancer.SubConnState) {
+func (b *testBalancer) UpdateSubConnState(sc apis.SubConn, s balancer.SubConnState) {
 	logger.Infof("testBalancer: UpdateSubConnState: %p, %v", sc, s)
 	if b.sc != sc {
 		logger.Infof("testBalancer: ignored state change because sc is not recognized")
@@ -119,7 +120,7 @@ func (b *testBalancer) Close() {}
 
 type picker struct {
 	err error
-	sc  balancer.SubConn
+	sc  apis.SubConn
 	bal *testBalancer
 }
 
@@ -370,7 +371,7 @@ func (b *testBalancerKeepAddresses) UpdateClientConnState(state balancer.ClientC
 	return nil
 }
 
-func (testBalancerKeepAddresses) UpdateSubConnState(sc balancer.SubConn, s balancer.SubConnState) {
+func (testBalancerKeepAddresses) UpdateSubConnState(sc apis.SubConn, s balancer.SubConnState) {
 	panic("not used")
 }
 
@@ -484,7 +485,7 @@ func (s) TestAddressAttributesInNewSubConn(t *testing.T) {
 			sc.Connect()
 			return nil
 		},
-		UpdateSubConnState: func(bd *stub.BalancerData, sc balancer.SubConn, state balancer.SubConnState) {
+		UpdateSubConnState: func(bd *stub.BalancerData, sc apis.SubConn, state balancer.SubConnState) {
 			bd.ClientConn.UpdateState(balancer.State{ConnectivityState: state.ConnectivityState, Picker: &aiPicker{result: balancer.PickResult{SubConn: sc}, err: state.ConnectionError}})
 		},
 	}
@@ -572,7 +573,7 @@ func (s) TestMetadataInAddressAttributes(t *testing.T) {
 			sc.Connect()
 			return nil
 		},
-		UpdateSubConnState: func(bd *stub.BalancerData, sc balancer.SubConn, state balancer.SubConnState) {
+		UpdateSubConnState: func(bd *stub.BalancerData, sc apis.SubConn, state balancer.SubConnState) {
 			bd.ClientConn.UpdateState(balancer.State{ConnectivityState: state.ConnectivityState, Picker: &aiPicker{result: balancer.PickResult{SubConn: sc}, err: state.ConnectionError}})
 		},
 	}

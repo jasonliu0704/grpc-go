@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"testing"
 	"time"
 
@@ -90,7 +91,7 @@ type testEDSBalancer struct {
 }
 
 type subConnWithState struct {
-	sc    balancer.SubConn
+	sc    apis.SubConn
 	state balancer.SubConnState
 }
 
@@ -112,7 +113,7 @@ func (tb *testEDSBalancer) ResolverError(err error) {
 	tb.resolverErrCh.Send(err)
 }
 
-func (tb *testEDSBalancer) UpdateSubConnState(sc balancer.SubConn, state balancer.SubConnState) {
+func (tb *testEDSBalancer) UpdateSubConnState(sc apis.SubConn, state balancer.SubConnState) {
 	tb.scStateCh.Send(subConnWithState{sc: sc, state: state})
 }
 
@@ -565,7 +566,7 @@ func (s) TestUpdateSubConnState(t *testing.T) {
 	}
 
 	// Push a subConn state change to the CDS balancer.
-	var sc balancer.SubConn
+	var sc apis.SubConn
 	state := balancer.SubConnState{ConnectivityState: connectivity.Ready}
 	cdsB.UpdateSubConnState(sc, state)
 

@@ -27,6 +27,7 @@ package balancergroup
 
 import (
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"testing"
 	"time"
 
@@ -63,8 +64,8 @@ func init() {
 	DefaultSubBalancerCloseTimeout = time.Millisecond
 }
 
-func subConnFromPicker(p balancer.Picker) func() balancer.SubConn {
-	return func() balancer.SubConn {
+func subConnFromPicker(p balancer.Picker) func() apis.SubConn {
+	return func() apis.SubConn {
 		scst, _ := p.Pick(balancer.PickInfo{})
 		return scst.SubConn
 	}
@@ -112,7 +113,7 @@ func (s) TestBalancerGroup_OneRR_AddRemoveBackend(t *testing.T) {
 
 	// Test roundrobin pick.
 	p2 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc1, sc2}
+	want := []apis.SubConn{sc1, sc2}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p2)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -159,7 +160,7 @@ func (s) TestBalancerGroup_TwoRR_OneBackend(t *testing.T) {
 
 	// Test roundrobin on the last picker.
 	p1 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc1, sc2}
+	want := []apis.SubConn{sc1, sc2}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p1)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -195,7 +196,7 @@ func (s) TestBalancerGroup_TwoRR_MoreBackends(t *testing.T) {
 
 	// Test roundrobin on the last picker.
 	p1 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc1, sc2, sc3, sc4}
+	want := []apis.SubConn{sc1, sc2, sc3, sc4}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p1)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -205,7 +206,7 @@ func (s) TestBalancerGroup_TwoRR_MoreBackends(t *testing.T) {
 	p2 := <-cc.NewPickerCh
 	// Expect two sc1's in the result, because balancer1 will be picked twice,
 	// but there's only one sc in it.
-	want = []balancer.SubConn{sc1, sc1, sc3, sc4}
+	want = []apis.SubConn{sc1, sc1, sc3, sc4}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p2)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -218,7 +219,7 @@ func (s) TestBalancerGroup_TwoRR_MoreBackends(t *testing.T) {
 	}
 	bg.UpdateSubConnState(scToRemove, balancer.SubConnState{ConnectivityState: connectivity.Shutdown})
 	p3 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc1, sc4}
+	want = []apis.SubConn{sc1, sc4}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p3)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -226,7 +227,7 @@ func (s) TestBalancerGroup_TwoRR_MoreBackends(t *testing.T) {
 	// Turn sc1's connection down.
 	bg.UpdateSubConnState(sc1, balancer.SubConnState{ConnectivityState: connectivity.TransientFailure})
 	p4 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc4}
+	want = []apis.SubConn{sc4}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p4)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -280,7 +281,7 @@ func (s) TestBalancerGroup_TwoRR_DifferentWeight_MoreBackends(t *testing.T) {
 
 	// Test roundrobin on the last picker.
 	p1 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc1, sc1, sc2, sc2, sc3, sc4}
+	want := []apis.SubConn{sc1, sc1, sc2, sc2, sc3, sc4}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p1)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -316,7 +317,7 @@ func (s) TestBalancerGroup_ThreeRR_RemoveBalancer(t *testing.T) {
 	bg.UpdateSubConnState(sc3, balancer.SubConnState{ConnectivityState: connectivity.Ready})
 
 	p1 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc1, sc2, sc3}
+	want := []apis.SubConn{sc1, sc2, sc3}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p1)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -330,7 +331,7 @@ func (s) TestBalancerGroup_ThreeRR_RemoveBalancer(t *testing.T) {
 		t.Fatalf("RemoveSubConn, want %v, got %v", sc2, scToRemove)
 	}
 	p2 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc1, sc3}
+	want = []apis.SubConn{sc1, sc3}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p2)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -383,7 +384,7 @@ func (s) TestBalancerGroup_TwoRR_ChangeWeight_MoreBackends(t *testing.T) {
 
 	// Test roundrobin on the last picker.
 	p1 := <-cc.NewPickerCh
-	want := []balancer.SubConn{sc1, sc1, sc2, sc2, sc3, sc4}
+	want := []apis.SubConn{sc1, sc1, sc2, sc2, sc3, sc4}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p1)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -393,7 +394,7 @@ func (s) TestBalancerGroup_TwoRR_ChangeWeight_MoreBackends(t *testing.T) {
 
 	// Test roundrobin with new weight.
 	p2 := <-cc.NewPickerCh
-	want = []balancer.SubConn{sc1, sc1, sc1, sc2, sc2, sc2, sc3, sc4}
+	want = []apis.SubConn{sc1, sc1, sc1, sc2, sc2, sc2, sc3, sc4}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p2)); err != nil {
 		t.Fatalf("want %v, got %v", want, err)
 	}
@@ -407,7 +408,7 @@ func (s) TestBalancerGroup_LoadReport(t *testing.T) {
 	)
 	cc, gator, bg := newTestBalancerGroup(t, loadStore.PerCluster(testCluster, testEDSService))
 
-	backendToBalancerID := make(map[balancer.SubConn]string)
+	backendToBalancerID := make(map[apis.SubConn]string)
 
 	// Add two balancers to group and send two resolved addresses to both
 	// balancers.
@@ -514,7 +515,7 @@ func (s) TestBalancerGroup_start_close(t *testing.T) {
 
 	bg.Start()
 
-	m1 := make(map[resolver.Address]balancer.SubConn)
+	m1 := make(map[resolver.Address]apis.SubConn)
 	for i := 0; i < 4; i++ {
 		addrs := <-cc.NewSubConnAddrsCh
 		sc := <-cc.NewSubConnCh
@@ -525,7 +526,7 @@ func (s) TestBalancerGroup_start_close(t *testing.T) {
 
 	// Test roundrobin on the last picker.
 	p1 := <-cc.NewPickerCh
-	want := []balancer.SubConn{
+	want := []apis.SubConn{
 		m1[testBackendAddrs[0]], m1[testBackendAddrs[0]],
 		m1[testBackendAddrs[1]], m1[testBackendAddrs[1]],
 		m1[testBackendAddrs[2]], m1[testBackendAddrs[3]],
@@ -556,7 +557,7 @@ func (s) TestBalancerGroup_start_close(t *testing.T) {
 	gator.Start()
 	bg.Start()
 
-	m2 := make(map[resolver.Address]balancer.SubConn)
+	m2 := make(map[resolver.Address]apis.SubConn)
 	for i := 0; i < 4; i++ {
 		addrs := <-cc.NewSubConnAddrsCh
 		sc := <-cc.NewSubConnCh
@@ -567,7 +568,7 @@ func (s) TestBalancerGroup_start_close(t *testing.T) {
 
 	// Test roundrobin on the last picker.
 	p2 := <-cc.NewPickerCh
-	want = []balancer.SubConn{
+	want = []apis.SubConn{
 		m2[testBackendAddrs[0]], m2[testBackendAddrs[0]], m2[testBackendAddrs[0]],
 		m2[testBackendAddrs[3]], m2[testBackendAddrs[3]], m2[testBackendAddrs[3]],
 		m2[testBackendAddrs[1]], m2[testBackendAddrs[2]],
@@ -691,7 +692,7 @@ func replaceDefaultSubBalancerCloseTimeout(n time.Duration) func() {
 // Two rr balancers are added to bg, each with 2 ready subConns. A sub-balancer
 // is removed later, so the balancer group returned has one sub-balancer in its
 // own map, and one sub-balancer in cache.
-func initBalancerGroupForCachingTest(t *testing.T) (*weightedaggregator.Aggregator, *BalancerGroup, *testutils.TestClientConn, map[resolver.Address]balancer.SubConn) {
+func initBalancerGroupForCachingTest(t *testing.T) (*weightedaggregator.Aggregator, *BalancerGroup, *testutils.TestClientConn, map[resolver.Address]apis.SubConn) {
 	cc := testutils.NewTestClientConn(t)
 	gator := weightedaggregator.New(cc, nil, testutils.NewTestWRR)
 	gator.Start()
@@ -708,7 +709,7 @@ func initBalancerGroupForCachingTest(t *testing.T) (*weightedaggregator.Aggregat
 
 	bg.Start()
 
-	m1 := make(map[resolver.Address]balancer.SubConn)
+	m1 := make(map[resolver.Address]apis.SubConn)
 	for i := 0; i < 4; i++ {
 		addrs := <-cc.NewSubConnAddrsCh
 		sc := <-cc.NewSubConnCh
@@ -719,7 +720,7 @@ func initBalancerGroupForCachingTest(t *testing.T) (*weightedaggregator.Aggregat
 
 	// Test roundrobin on the last picker.
 	p1 := <-cc.NewPickerCh
-	want := []balancer.SubConn{
+	want := []apis.SubConn{
 		m1[testBackendAddrs[0]], m1[testBackendAddrs[0]],
 		m1[testBackendAddrs[1]], m1[testBackendAddrs[1]],
 		m1[testBackendAddrs[2]], m1[testBackendAddrs[3]],
@@ -743,7 +744,7 @@ func initBalancerGroupForCachingTest(t *testing.T) (*weightedaggregator.Aggregat
 	}
 	// Test roundrobin on the with only sub-balancer0.
 	p2 := <-cc.NewPickerCh
-	want = []balancer.SubConn{
+	want = []apis.SubConn{
 		m1[testBackendAddrs[0]], m1[testBackendAddrs[1]],
 	}
 	if err := testutils.IsRoundRobin(want, subConnFromPicker(p2)); err != nil {
@@ -781,7 +782,7 @@ func (s) TestBalancerGroup_locality_caching(t *testing.T) {
 	bg.Add(testBalancerIDs[1], rrBuilder)
 
 	p3 := <-cc.NewPickerCh
-	want := []balancer.SubConn{
+	want := []apis.SubConn{
 		addrToSC[testBackendAddrs[0]], addrToSC[testBackendAddrs[0]],
 		addrToSC[testBackendAddrs[1]], addrToSC[testBackendAddrs[1]],
 		// addr2 is down, b2 only has addr3 in READY state.
@@ -811,7 +812,7 @@ func (s) TestBalancerGroup_locality_caching_close_group(t *testing.T) {
 	bg.Close()
 	// The balancer group is closed. The subconns should be removed immediately.
 	removeTimeout := time.After(time.Millisecond * 500)
-	scToRemove := map[balancer.SubConn]int{
+	scToRemove := map[apis.SubConn]int{
 		addrToSC[testBackendAddrs[0]]: 1,
 		addrToSC[testBackendAddrs[1]]: 1,
 		addrToSC[testBackendAddrs[2]]: 1,
@@ -840,7 +841,7 @@ func (s) TestBalancerGroup_locality_caching_not_readd_within_timeout(t *testing.
 	// The sub-balancer is not re-added withtin timeout. The subconns should be
 	// removed.
 	removeTimeout := time.After(DefaultSubBalancerCloseTimeout)
-	scToRemove := map[balancer.SubConn]int{
+	scToRemove := map[apis.SubConn]int{
 		addrToSC[testBackendAddrs[2]]: 1,
 		addrToSC[testBackendAddrs[3]]: 1,
 	}
@@ -879,7 +880,7 @@ func (s) TestBalancerGroup_locality_caching_readd_with_different_builder(t *test
 	// The cached sub-balancer should be closed, and the subconns should be
 	// removed immediately.
 	removeTimeout := time.After(time.Millisecond * 500)
-	scToRemove := map[balancer.SubConn]int{
+	scToRemove := map[apis.SubConn]int{
 		addrToSC[testBackendAddrs[2]]: 1,
 		addrToSC[testBackendAddrs[3]]: 1,
 	}
@@ -922,7 +923,7 @@ func (s) TestBalancerGroup_locality_caching_readd_with_different_builder(t *test
 
 	// Test roundrobin on the new picker.
 	p3 := <-cc.NewPickerCh
-	want := []balancer.SubConn{
+	want := []apis.SubConn{
 		addrToSC[testBackendAddrs[0]], addrToSC[testBackendAddrs[0]],
 		addrToSC[testBackendAddrs[1]], addrToSC[testBackendAddrs[1]],
 		addrToSC[testBackendAddrs[4]], addrToSC[testBackendAddrs[5]],

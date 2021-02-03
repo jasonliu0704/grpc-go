@@ -22,6 +22,7 @@ package clustermanager
 import (
 	"encoding/json"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/grpclog"
@@ -125,7 +126,7 @@ func (b *bal) ResolverError(err error) {
 	b.bg.ResolverError(err)
 }
 
-func (b *bal) UpdateSubConnState(sc balancer.SubConn, state balancer.SubConnState) {
+func (b *bal) UpdateSubConnState(sc apis.SubConn, state balancer.SubConnState) {
 	b.bg.UpdateSubConnState(sc, state)
 }
 

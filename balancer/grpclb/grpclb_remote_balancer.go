@@ -21,6 +21,7 @@ package grpclb
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"io"
 	"net"
 	"sync"
@@ -135,7 +136,7 @@ func (lb *lbBalancer) refreshSubConns(backendAddrs []resolver.Address, fallback 
 	}
 
 	if lb.usePickFirst {
-		var sc balancer.SubConn
+		var sc apis.SubConn
 		for _, sc = range lb.subConns {
 			break
 		}

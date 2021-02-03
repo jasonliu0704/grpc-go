@@ -22,6 +22,7 @@ package weightedtarget
 import (
 	"encoding/json"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/internal/grpclog"
@@ -151,7 +152,7 @@ func (w *weightedTargetBalancer) ResolverError(err error) {
 	w.bg.ResolverError(err)
 }
 
-func (w *weightedTargetBalancer) UpdateSubConnState(sc balancer.SubConn, state balancer.SubConnState) {
+func (w *weightedTargetBalancer) UpdateSubConnState(sc apis.SubConn, state balancer.SubConnState) {
 	w.bg.UpdateSubConnState(sc, state)
 }
 

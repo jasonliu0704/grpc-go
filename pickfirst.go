@@ -21,6 +21,7 @@ package grpc
 import (
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/connectivity"
@@ -46,7 +47,7 @@ func (*pickfirstBuilder) Name() string {
 type pickfirstBalancer struct {
 	state connectivity.State
 	cc    balancer.ClientConn
-	sc    balancer.SubConn
+	sc    apis.SubConn
 }
 
 func (b *pickfirstBalancer) ResolverError(err error) {
@@ -90,7 +91,7 @@ func (b *pickfirstBalancer) UpdateClientConnState(cs balancer.ClientConnState) e
 	return nil
 }
 
-func (b *pickfirstBalancer) UpdateSubConnState(sc balancer.SubConn, s balancer.SubConnState) {
+func (b *pickfirstBalancer) UpdateSubConnState(sc apis.SubConn, s balancer.SubConnState) {
 	if logger.V(2) {
 		logger.Infof("pickfirstBalancer: UpdateSubConnState: %p, %v", sc, s)
 	}

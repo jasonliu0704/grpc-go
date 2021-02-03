@@ -20,6 +20,7 @@ package grpclb
 
 import (
 	"fmt"
+	"google.golang.org/grpc/balancer/apis"
 	"sync"
 	"time"
 
@@ -101,11 +102,11 @@ type lbCacheClientConn struct {
 	mu sync.Mutex
 	// subConnCache only keeps subConns that are being deleted.
 	subConnCache  map[resolver.Address]*subConnCacheEntry
-	subConnToAddr map[balancer.SubConn]resolver.Address
+	subConnToAddr map[apis.SubConn]resolver.Address
 }
 
 type subConnCacheEntry struct {
-	sc balancer.SubConn
+	sc apis.SubConn
 
 	cancel        func()
 	abortDeleting bool
@@ -116,11 +117,11 @@ func newLBCacheClientConn(cc balancer.ClientConn) *lbCacheClientConn {
 		cc:            cc,
 		timeout:       subConnCacheTime,
 		subConnCache:  make(map[resolver.Address]*subConnCacheEntry),
-		subConnToAddr: make(map[balancer.SubConn]resolver.Address),
+		subConnToAddr: make(map[apis.SubConn]resolver.Address),
 	}
 }
 
-func (ccc *lbCacheClientConn) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (balancer.SubConn, error) {
+func (ccc *lbCacheClientConn) NewSubConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (apis.SubConn, error) {
 	if len(addrs) != 1 {
 		return nil, fmt.Errorf("grpclb calling NewSubConn with addrs of length %v", len(addrs))
 	}
@@ -146,7 +147,7 @@ func (ccc *lbCacheClientConn) NewSubConn(addrs []resolver.Address, opts balancer
 	return scNew, nil
 }
 
-func (ccc *lbCacheClientConn) RemoveSubConn(sc balancer.SubConn) {
+func (ccc *lbCacheClientConn) RemoveSubConn(sc apis.SubConn) {
 	ccc.mu.Lock()
 	defer ccc.mu.Unlock()
 	addr, ok := ccc.subConnToAddr[sc]
