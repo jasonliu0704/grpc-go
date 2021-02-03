@@ -1,4 +1,4 @@
-module github.com/jasonliu0704/grpc
+module google.golang.org/grpc
 
 go 1.11
 
@@ -13,7 +13,6 @@ require (
 	golang.org/x/oauth2 v0.0.0-20201208152858-08078c50e5b5
 	golang.org/x/sys v0.0.0-20201201145000-ef89a241ccb3
 	google.golang.org/genproto v0.0.0-20210108203827-ffc7fda8c3d7
-	google.golang.org/grpc v1.31.0
 	google.golang.org/protobuf v1.25.0
 )
 
