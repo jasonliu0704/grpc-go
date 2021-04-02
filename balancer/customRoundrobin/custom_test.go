@@ -584,6 +584,7 @@ func (s) TestStickyNess(t *testing.T) {
 		if _, err := testc.EmptyCall(ctx, &testpb.Empty{}, grpc.Peer(&p)); err != nil {
 			t.Fatalf("EmptyCall() = _, %v, want _, <nil>", err)
 		}
+		t.Logf("p.Addr %s, test.Address %s\n", p.Addr, test.addresses[i%backendCount])
 		if p.Addr.String() != test.addresses[i%backendCount] {
 			t.Fatalf("Index %d: want peer %v, got peer %v", i, test.addresses[i%backendCount], p.Addr.String())
 		}

@@ -144,7 +144,9 @@ func (pw *pickerWrapper) pick(ctx context.Context, failfast bool, info balancer.
 
 		acw, ok := pickResult.SubConn.(*acBalancerWrapper)
 		if !ok {
+			// note: wrong type cast can be triggered by nil or invalide subconn
 			logger.Error("subconn returned from pick is not *acBalancerWrapper")
+			logger.Errorf("pickResult.SubConn: %v", pickResult.SubConn)
 			continue
 		}
 		if t, ok := acw.getAddrConn().getReadyTransport(); ok {
