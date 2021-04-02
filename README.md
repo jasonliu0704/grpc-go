@@ -113,6 +113,8 @@ like this:
 $ export GRPC_GO_LOG_VERBOSITY_LEVEL=99
 $ export GRPC_GO_LOG_SEVERITY_LEVEL=info
 ```
+### Sticky session:
+my implementation is derived from the reference implementation: https://github.com/grpc/grpc-go/pull/1969
 
 ### The RPC failed with error `"code = Unavailable desc = transport is closing"`
 
